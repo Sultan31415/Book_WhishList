@@ -21,18 +21,30 @@ backend:
 
   steps:
     - uses: actions/checkout@v3
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
 
     - name: Install dependencies
-      run: pip install -r booklist/booklist-backend/requirements.txt
+      run: pip install -r requirements.txt
 
-    - name: Wait for Postgres to be ready
-      run: sleep 10  # simple wait, optional
+    - name: Wait for PostgreSQL to be healthy
+      run: |
+        for i in {1..10}; do
+          pg_isready -h localhost -p 5432 && break
+          echo "Waiting for Postgres..."
+          sleep 3
+        done
 
     - name: Run tests
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: booklist
+        DB_USER: postgres
+        DB_PASSWORD: admin
       run: |
         if [ -f test_main.py ]; then pytest; else echo "No tests found"; fi
 
