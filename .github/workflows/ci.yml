@@ -1,53 +1,79 @@
-backend:
-  runs-on: ubuntu-latest
-  services:
-    postgres:
-      image: postgres:13
-      env:
-        POSTGRES_DB: booklist
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: admin
-      ports:
-        - 5432:5432
-      options: >-
-        --health-cmd pg_isready
-        --health-interval 10s
-        --health-timeout 5s
-        --health-retries 5
+name: CI
 
-  defaults:
-    run:
-      working-directory: ./booklist-backend
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
-  steps:
-    - uses: actions/checkout@v3
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_DB: booklist
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: admin
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+    defaults:
+      run:
+        working-directory: ./booklist-backend
 
-    - name: Install dependencies
-      run: pip install -r requirements.txt
+    steps:
+      - uses: actions/checkout@v3
 
-    - name: Wait for PostgreSQL to be healthy
-      run: |
-        for i in {1..10}; do
-          pg_isready -h localhost -p 5432 && break
-          echo "Waiting for Postgres..."
-          sleep 3
-        done
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-    - name: Run tests
-      env:
-        DB_HOST: localhost
-        DB_PORT: 5432
-        DB_NAME: booklist
-        DB_USER: postgres
-        DB_PASSWORD: admin
-      run: |
-        if [ -f test_main.py ]; then pytest; else echo "No tests found"; fi
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-    - name: Show DB logs if failed
-      if: failure()
-      run: docker logs $(docker ps -aqf "ancestor=postgres:13")
+      - name: Wait for PostgreSQL to be healthy
+        run: |
+          for i in {1..10}; do
+            pg_isready -h localhost -p 5432 && break
+            echo "Waiting for Postgres..."
+            sleep 3
+          done
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql://postgres:admin@localhost:5432/booklist
+        run: |
+          if [ -f test_main.py ]; then pytest; else echo "No tests found"; fi
+
+      - name: Show DB logs if failed
+        if: failure()
+        run: docker logs $(docker ps -aqf "ancestor=postgres:13")
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./booklist-front
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: |
+          if [ -f package.json ]; then npm test --if-present; else echo "No tests found"; fi
