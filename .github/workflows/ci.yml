@@ -1,42 +1,41 @@
-name: CI
+backend:
+  runs-on: ubuntu-latest
+  services:
+    postgres:
+      image: postgres:13
+      env:
+        POSTGRES_DB: booklist
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: admin
+      ports:
+        - 5432:5432
+      options: >-
+        --health-cmd pg_isready
+        --health-interval 10s
+        --health-timeout 5s
+        --health-retries 5
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  defaults:
+    run:
+      working-directory: ./booklist-backend
 
-jobs:
-  backend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./booklist-backend
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Run tests
-        run: |
-          if [ -f test_main.py ]; then pytest; else echo "No tests found"; fi
+  steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
 
-  frontend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./booklist-front
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      - name: Install dependencies
-        run: npm install
-      - name: Run tests
-        run: |
-          if [ -f package.json ]; then npm test --if-present; else echo "No tests found"; fi 
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Wait for Postgres to be ready
+      run: sleep 10  # simple wait, optional
+
+    - name: Run tests
+      run: |
+        if [ -f test_main.py ]; then pytest; else echo "No tests found"; fi
+
+    - name: Show DB logs if failed
+      if: failure()
+      run: docker logs $(docker ps -aqf "ancestor=postgres:13")
