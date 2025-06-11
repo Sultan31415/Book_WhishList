@@ -27,7 +27,7 @@ backend:
         python-version: '3.9'
 
     - name: Install dependencies
-      run: pip install -r requirements.txt
+      run: pip install -r booklist/booklist-backend/requirements.txt
 
     - name: Wait for Postgres to be ready
       run: sleep 10  # simple wait, optional
