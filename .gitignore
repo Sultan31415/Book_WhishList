@@ -15,6 +15,7 @@ dist/
 *.pid
 *.log
 postgres_data/
+redis_data/
 
 # VSCode
 .vscode/
@@ -22,3 +23,12 @@ postgres_data/
 # OS
 .DS_Store
 Thumbs.db 
+
+# Backend venv and data
+booklist-backend/venv/
+booklist-backend/__pycache__/
+booklist-backend/.env
+
+# Frontend data
+booklist-front/node_modules/
+booklist-front/dist/ 

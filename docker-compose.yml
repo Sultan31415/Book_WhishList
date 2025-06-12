@@ -23,6 +23,8 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://postgres:admin@db:5432/booklist
+      - REDIS_URL=redis://redis:6379/0  
+
     depends_on:
       db:
         condition: service_healthy
@@ -36,5 +38,13 @@ services:
     depends_on:
       - backend
 
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
-  postgres_data: 
+  postgres_data:
+  redis_data: 
