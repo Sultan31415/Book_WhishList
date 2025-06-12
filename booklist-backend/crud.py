@@ -3,9 +3,10 @@ from redis_client import redis_client
 from models import Book
 from sqlalchemy.orm import Session
 from schemas import BookCreate
+from tasks import update_books_cache
 
 CACHE_KEY = "books:all"
-CACHE_TTL = 60  # кеш живёт 60 секунд
+CACHE_TTL = 300 # кеш живёт 60 секунд
 
 def get_books(db: Session):
     cached = redis_client.get(CACHE_KEY)
@@ -25,7 +26,7 @@ def create_book(db: Session, book: BookCreate):
     db.add(db_book)
     db.commit()
     db.refresh(db_book)
-    redis_client.delete(CACHE_KEY)  # Invalidate cache
+    update_books_cache.delay()  # Trigger async cache update
     return {"id": db_book.id, "title": db_book.title, "author": db_book.author}
 
 def delete_book(db: Session, book_id: int):
@@ -33,6 +34,6 @@ def delete_book(db: Session, book_id: int):
     if book:
         db.delete(book)
         db.commit()
-        redis_client.delete(CACHE_KEY)  # Invalidate cache
+        update_books_cache.delay()  # Trigger async cache update
         return {"id": book.id, "title": book.title, "author": book.author}
     return None

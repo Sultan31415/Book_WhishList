@@ -45,6 +45,16 @@ services:
     volumes:
       - redis_data:/data
 
+  worker:
+    build: ./booklist-backend
+    command: celery -A celery_worker worker --loglevel=info
+    depends_on:
+      - backend
+      - redis
+    environment:
+      - DATABASE_URL=postgresql://postgres:admin@db:5432/booklist
+      - REDIS_URL=redis://redis:6379/0
+
 volumes:
   postgres_data:
   redis_data: 
